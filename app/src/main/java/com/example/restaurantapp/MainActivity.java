@@ -3,9 +3,11 @@ package com.example.restaurantapp;
 import android.content.Intent;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.core.content.ContextCompat;
@@ -19,6 +21,7 @@ public class MainActivity extends BaseActivity
         implements com.google.android.material.bottomnavigation.BottomNavigationView.OnNavigationItemSelectedListener,
         NavigationView.OnNavigationItemSelectedListener {
 
+    private static final String TAG = "MainActivity";
     private ActivityMainBinding binding;
     private ActionBarDrawerToggle toggle;
 
@@ -68,6 +71,29 @@ public class MainActivity extends BaseActivity
                     .commit();
             binding.bottomNav.setSelectedItemId(R.id.menu_home);
         }
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                Log.d(TAG, "OnBackPressedCallback called");
+
+                if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                    binding.drawerLayout.closeDrawer(GravityCompat.START);
+                    return;
+                }
+
+                int selectedId = binding.bottomNav.getSelectedItemId();
+
+                if (selectedId != R.id.menu_home) {
+                    binding.bottomNav.setSelectedItemId(R.id.menu_home);
+                    getSupportFragmentManager().beginTransaction()
+                            .replace(binding.fragmentContainer.getId(), new HomeFragment())
+                            .commit();
+                } else {
+                    finish();
+                }
+            }
+        });
     }
 
     @Override
@@ -86,6 +112,7 @@ public class MainActivity extends BaseActivity
         }
 
         else if (id == R.id.nav_profile) {
+            binding.bottomNav.setSelectedItemId(R.id.menu_profile);
             selectedFragment = new ProfileFragment();
         } else if (id == R.id.nav_about) {
             startActivity(new Intent(this, AboutActivity.class));
@@ -109,29 +136,15 @@ public class MainActivity extends BaseActivity
         }
 
         if (selectedFragment != null) {
-            getSupportFragmentManager().beginTransaction()
-                    .replace(binding.fragmentContainer.getId(), selectedFragment)
-                    .commit();
+            Fragment current = getSupportFragmentManager().findFragmentById(binding.fragmentContainer.getId());
+            if (current == null || !current.getClass().equals(selectedFragment.getClass())) {
+                getSupportFragmentManager().beginTransaction()
+                        .replace(binding.fragmentContainer.getId(), selectedFragment)
+                        .commit();
+            }
         }
 
         binding.drawerLayout.closeDrawer(GravityCompat.START);
-
         return true;
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
-            binding.drawerLayout.closeDrawer(GravityCompat.START);
-            return;
-        }
-
-        int selectedId = binding.bottomNav.getSelectedItemId();
-
-        if (selectedId != R.id.menu_home) {
-            binding.bottomNav.setSelectedItemId(R.id.menu_home);
-        } else {
-            super.onBackPressed();
-        }
     }
 }
